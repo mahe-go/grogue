@@ -33,11 +33,11 @@ func (n *node) isLeaf() bool {
 
 func BSPDungeon(width int, height int, minNodeWidth int, minNodeHeight int) (*Grid, error) {
 	rand.Seed(time.Now().Unix())
-	root := split(newNode(nil, newRect(0, 0, width, height)), minNodeWidth, minNodeHeight)
-	grid := NewGrid(width, height, root.delveRoom, root.connectChildren)
-	err := grid.DelveRoom(grid)
+	root := split(newNode(nil, newRect(1, 1, width-1, height-1)), minNodeWidth, minNodeHeight)
+	grid := NewSolidGrid(width, height)
+	err := root.delveRoom(grid)
 	if err == nil {
-		err = grid.DelveCorridor(grid)
+		err = root.connectPartsWithCorridor(grid)
 	}
 	return grid, err
 }
@@ -112,11 +112,11 @@ func (n *node) delveRoom(grid *Grid) error {
 	}
 }
 
-func (n *node) connectChildren(grid *Grid) error {
+func (n *node) connectPartsWithCorridor(grid *Grid) error {
 	if !n.isLeaf() {
-		err := n.Left.connectChildren(grid)
+		err := n.Left.connectPartsWithCorridor(grid)
 		if err == nil {
-			n.Right.connectChildren(grid)
+			n.Right.connectPartsWithCorridor(grid)
 		}
 
 		startx := n.Left.Rect.X + n.Left.Rect.Width/2

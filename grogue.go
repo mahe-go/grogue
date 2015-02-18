@@ -6,10 +6,11 @@ import (
 )
 
 func main() {
-	grid, err := dungeon.BSPDungeon(80, 40, 7, 7)
-	if err != nil {
-		fmt.Errorf("Error %s", err)
-	}
+	grid := dungeon.NewCellularDungeon(80, 20, 45, 4)
+	printGrid(grid)
+}
+
+func printGrid(grid *dungeon.Grid) {
 	for y := 0; y < grid.Height; y++ {
 		for x := 0; x < grid.Width; x++ {
 			b, _ := grid.Get(x, y)
@@ -17,4 +18,5 @@ func main() {
 		}
 		fmt.Print("\n")
 	}
+
 }
