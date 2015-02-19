@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	grid := dungeon.NewCellularDungeon(80, 20, 45, 4)
+	grid := dungeon.NewCellularDungeon(80, 20, 50, 2)
 	printGrid(grid)
 }
 

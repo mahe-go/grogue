@@ -8,7 +8,7 @@ import (
 
 type CellType uint
 
-const CELLTYPE_CHARS = " #.."
+const CELLTYPE_CHARS = " #.*"
 const SOLID_ROCK CellType = 0
 const WALL CellType = 1
 const ROOM CellType = 2
@@ -41,9 +41,9 @@ func NewRandomGrid(width int, height int, solidCellPercentage int, solidCellType
 		for y := 0; y < height; y++ {
 			probability := rand.Intn(100)
 			if solidCellPercentage > probability {
-				grid.Set(x, y, *NewGridCell(solidCellType))
+				grid.Set(x, y, *NewGridCellOfType(solidCellType))
 			} else {
-				grid.Set(x, y, *NewGridCell(emptyCellType))
+				grid.Set(x, y, *NewGridCellOfType(emptyCellType))
 			}
 		}
 	}
@@ -51,52 +51,54 @@ func NewRandomGrid(width int, height int, solidCellPercentage int, solidCellType
 }
 
 type GridCell struct {
-	Type CellType
+	Type    CellType
+	Checked bool
 }
 
 type GridCellConditional func(cell GridCell) bool
-type GridCellModification func(cell GridCell) (GridCell, error)
+type GridCellModification func(cell GridCell) GridCell
 
-func NewGridCell(typ CellType) *GridCell {
-	return &GridCell{typ}
+func NewGridCellOfType(typ CellType) *GridCell {
+	return &GridCell{typ, false}
+}
+
+func NewGridCellOfTypeValue(typ CellType) GridCell {
+	return GridCell{typ, false}
 }
 
 func (g GridCell) String() string {
 	return string([]rune(CELLTYPE_CHARS)[g.Type])
 }
 
-func (g *Grid) cellIndex(x int, y int) (int, error) {
-	size := g.Width * g.Height
-	index := g.Width*y + x
-	if index >= size || index < 0 {
-		return -1, GRID_OVERFLOW
-	} else {
-		return index, nil
-	}
-}
-
-func (g *Grid) Set(x int, y int, value GridCell) (err error) {
+/*
+Set cell at (x,y)
+*/
+func (g *Grid) Set(x int, y int, value GridCell) error {
 	index, err := g.cellIndex(x, y)
 	if err == nil {
 		g.cells[index] = value
 	}
-	return
+	return err
 }
 
-func (g *Grid) Apply(mod GridCellModification, x int, y int) (err error) {
+/*
+Return cell at (x,y)
+*/
+func (g *Grid) Get(x int, y int) (GridCell, error) {
 	index, err := g.cellIndex(x, y)
 	if err == nil {
-		g.cells[index], err = mod(g.cells[index])
+		return g.cells[index], nil
+	} else {
+		return GridCell{}, err
 	}
-	return
 }
 
-func (g *Grid) Get(x int, y int) (cell GridCell, err error) {
-	index, err := g.cellIndex(x, y)
-	if err == nil {
-		cell = g.cells[index]
+func (g *Grid) cellIndex(x int, y int) (int, error) {
+	if x < 0 || x >= g.Width || y < 0 || y >= g.Height {
+		return -1, GRID_OVERFLOW
+	} else {
+		return g.Width*y + x, nil
 	}
-	return
 }
 
 func (g *Grid) fillRow(y int, cellType CellType) (err error) {
@@ -104,7 +106,7 @@ func (g *Grid) fillRow(y int, cellType CellType) (err error) {
 		err = GRID_OVERFLOW
 	} else {
 		for i := 0; i < g.Width && err == nil; i++ {
-			err = g.Set(i, y, GridCell{cellType})
+			err = g.Set(i, y, NewGridCellOfTypeValue(cellType))
 		}
 	}
 	return
@@ -115,65 +117,92 @@ func (g *Grid) fillColumn(x int, cellType CellType) (err error) {
 		err = GRID_OVERFLOW
 	} else {
 		for i := 0; i < g.Height && err == nil; i++ {
-			err = g.Set(x, i, GridCell{cellType})
+			err = g.Set(x, i, NewGridCellOfTypeValue(cellType))
 		}
 	}
 	return
 }
 
-func (g *Grid) convertAll(from CellType, to CellType) {
+/*
+Test cell at (x,y) for condition
+*/
+func (g *Grid) Test(condition GridCellConditional, x int, y int) bool {
+	index, err := g.cellIndex(x, y)
+	if err == nil {
+		return condition(g.cells[index])
+	} else {
+		return false
+	}
+}
+
+/*
+Apply modification to cell at (x,y)
+*/
+func (g *Grid) Apply(mod GridCellModification, x int, y int) error {
+	index, err := g.cellIndex(x, y)
+	if err == nil {
+		g.cells[index] = mod(g.cells[index])
+	}
+	return err
+}
+
+/*
+Apply modification to all cells
+*/
+func (g *Grid) ApplyToAll(mod GridCellModification) error {
 	for i, _ := range g.cells {
-		if g.cells[i].Type == from {
-			g.cells[i] = GridCell{to}
+		g.cells[i] = mod(g.cells[i])
+	}
+	return nil
+}
+
+/*
+Apply modification to all cells matching condition
+*/
+func (g *Grid) ApplyToAllMatching(mod GridCellModification, condition GridCellConditional) error {
+	for i := range g.cells {
+		if condition(g.cells[i]) {
+			g.cells[i] = mod(g.cells[i])
 		}
 	}
+	return nil
 }
 
-func (g *Grid) convertAllMatching(condition GridCellConditional, to CellType) (err error) {
-	for x := 0; x < g.Width && err == nil; x++ {
-		for y := 0; y < g.Height && err == nil; y++ {
-			err = g.convertSingleMatching(condition, x, y, to)
-		}
-	}
-	return
-}
-
-func (g *Grid) convertSingleMatching(condition GridCellConditional, x int, y int, to CellType) (err error) {
-	var cell GridCell
-	cell, err = g.Get(x, y)
-	if condition(cell) {
-		err = g.Set(x, y, GridCell{to})
-	}
-	return
-}
-
-func (g *Grid) floodFill(x int, y int, cellType CellType) {
-	left := -1
-	right := 1
-	up := -1
-	down := 1
+/*
+Apply modification to cell in (x,y) if it matches condition
+*/
+func (g *Grid) ApplyToSingleMatching(mod GridCellModification, condition GridCellConditional, x int, y int) error {
 	cell, err := g.Get(x, y)
-	if err != nil {
+	if err == nil && condition(cell) {
+		err = g.Apply(mod, x, y)
+	}
+	return err
+}
+
+/*
+Apply modification to all connected cells matching a condition starting from (x,y), using 4-way floodFill algorithm
+*/
+func (g *Grid) ApplyToConnected(mod GridCellModification, selectCondition GridCellConditional, x int, y int) {
+	left := x - 1
+	right := x + 1
+	up := y - 1
+	down := y + 1
+
+	origo, err := g.Get(x, y)
+	if err == nil && selectCondition(origo) {
+		g.Apply(mod, x, y)
+		g.ApplyToConnected(mod, selectCondition, left, y)
+		g.ApplyToConnected(mod, selectCondition, right, y)
+		g.ApplyToConnected(mod, selectCondition, x, up)
+		g.ApplyToConnected(mod, selectCondition, x, down)
+	} else {
 		return
 	}
-
-	origType := cell.Type
-	if cell, err = g.Get(x+left, y); err == nil && cell.Type == origType {
-		g.floodFill(x+left, y, cellType)
-	}
-	if cell, err = g.Get(x+right, y); err == nil && cell.Type == origType {
-		g.floodFill(x+right, y, cellType)
-	}
-	if cell, err = g.Get(x, y+up); err == nil && cell.Type == origType {
-		g.floodFill(x, y+up, cellType)
-	}
-	if cell, err = g.Get(x, y+down); err == nil && cell.Type == origType {
-		g.floodFill(x, y+down, cellType)
-	}
-	_ = g.Set(x, y, GridCell{cellType})
-	return
 }
 
+/*
+Change type of cells on a straight line from (startX, startY) to (endX, endY). Line is calculated with Bresenham algorithm.
+*/
 func (grid *Grid) MarkLineBresenham(startx int, starty int, endx int, endy int, cellType CellType) error {
 
 	// Bresenham's line drawing algorithm
@@ -206,7 +235,7 @@ func (grid *Grid) MarkLineBresenham(startx int, starty int, endx int, endy int, 
 			return err
 		} else {
 			if old.Type == WALL || old.Type == SOLID_ROCK {
-				err = grid.Set(cx, cy, *NewGridCell(cellType))
+				err = grid.Set(cx, cy, *NewGridCellOfType(cellType))
 			}
 		}
 

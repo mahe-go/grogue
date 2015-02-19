@@ -94,11 +94,11 @@ func (n *node) delveRoom(grid *Grid) error {
 		for x := roomX; x < roomWidth && err == nil; x++ {
 			for y := roomY; y < roomHeight && err == nil; y++ {
 				if y == roomY || y == roomHeight-1 {
-					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCell(WALL))
+					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(WALL))
 				} else if x == roomX || x == roomWidth-1 {
-					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCell(WALL))
+					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(WALL))
 				} else {
-					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCell(ROOM))
+					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(ROOM))
 				}
 			}
 		}
