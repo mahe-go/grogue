@@ -31,26 +31,39 @@ func (n *node) isLeaf() bool {
 	return n.Left == nil && n.Right == nil
 }
 
-func NewRectangularCavernGrid(width int, height int, minNodeWidth int, minNodeHeight int) (*Grid, error) {
+func NewRectangularCavernGrid(width int, height int, minNodeWidth int, minNodeHeight int) *Grid {
 	rand.Seed(time.Now().Unix())
 	root := split(newNode(nil, newRect(1, 1, width-1, height-1)), minNodeWidth, minNodeHeight)
 	grid := NewSolidGrid(width, height)
-	err := root.delveRoom(grid)
-	if err == nil {
-		err = root.connectPartsWithCorridor(grid)
-	}
+	root.delveRoom(grid)
+	root.connectPartsWithCorridor(grid)
+
 	grid.buildCavernWalls()
 
-	return grid, err
+	return grid
 }
 
 func split(n *node, minNodeWidth int, minNodeHeight int) *node {
 	r := n.Rect
 	var width, height, width2, height2 int
 	var x, y int
+
+	verticalSplitPossible := r.Width > minNodeWidth*2
+	horizontalSplitPossible := r.Height > minNodeHeight*2
+
+	if !verticalSplitPossible && !horizontalSplitPossible {
+		return n
+	}
+
 	direction := rand.Intn(2)
+	if verticalSplitPossible && !horizontalSplitPossible {
+		direction = 0
+	} else if !verticalSplitPossible && horizontalSplitPossible {
+		direction = 1
+	}
+
 	if direction == 0 {
-		splitLoc := r.Width/3 + rand.Intn(r.Width/3)
+		splitLoc := minNodeWidth + rand.Intn(r.Width-2*minNodeWidth)
 		width = splitLoc
 		x = r.X + width
 		width2 = r.Width - width
@@ -58,7 +71,7 @@ func split(n *node, minNodeWidth int, minNodeHeight int) *node {
 		height2 = r.Height
 		y = r.Y
 	} else {
-		splitLoc := r.Height/3 + rand.Intn(r.Height/3)
+		splitLoc := minNodeHeight + rand.Intn(r.Height-2*minNodeHeight)
 		width = r.Width
 		width2 = r.Width
 		x = r.X
@@ -67,20 +80,19 @@ func split(n *node, minNodeWidth int, minNodeHeight int) *node {
 		y = r.Y + height
 	}
 
-	if height > minNodeHeight && height2 > minNodeHeight && width > minNodeWidth && width2 > minNodeWidth {
-		leftRect := newRect(r.X, r.Y, width, height)
-		rightRect := newRect(x, y, width2, height2)
-		n.Left = split(newNode(n, leftRect), minNodeHeight, minNodeWidth)
-		n.Right = split(newNode(n, rightRect), minNodeHeight, minNodeWidth)
-	}
+	leftRect := newRect(r.X, r.Y, width, height)
+	rightRect := newRect(x, y, width2, height2)
+
+	n.Left = split(newNode(n, leftRect), minNodeHeight, minNodeWidth)
+	n.Right = split(newNode(n, rightRect), minNodeHeight, minNodeWidth)
 
 	return n
 }
 
-func (n *node) delveRoom(grid *Grid) error {
+func (n *node) delveRoom(grid *Grid) {
 	if n.isLeaf() {
-		roomWidth := 2*n.Rect.Width/3 + rand.Intn(n.Rect.Width/3)
-		roomHeight := 2*n.Rect.Height/3 + rand.Intn(n.Rect.Height/3)
+		roomWidth := n.Rect.Width/2 + rand.Intn(n.Rect.Width/2)
+		roomHeight := n.Rect.Height/2 + rand.Intn(n.Rect.Height/2)
 
 		roomX := 0
 		if roomWidth < n.Rect.Width {
@@ -98,30 +110,24 @@ func (n *node) delveRoom(grid *Grid) error {
 				err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(ROOM))
 			}
 		}
-		return err
+		return
 	} else {
-		err := n.Left.delveRoom(grid)
-		if err == nil {
-			err = n.Right.delveRoom(grid)
-		}
-		return err
+		n.Left.delveRoom(grid)
+		n.Right.delveRoom(grid)
+		return
 	}
 }
 
-func (n *node) connectPartsWithCorridor(grid *Grid) error {
+func (n *node) connectPartsWithCorridor(grid *Grid) {
 	if !n.isLeaf() {
-		err := n.Left.connectPartsWithCorridor(grid)
-		if err == nil {
-			n.Right.connectPartsWithCorridor(grid)
-		}
+		n.Left.connectPartsWithCorridor(grid)
+		n.Right.connectPartsWithCorridor(grid)
 
 		startx := n.Left.Rect.X + n.Left.Rect.Width/2
 		endx := n.Right.Rect.X + n.Right.Rect.Width/2
 		starty := n.Left.Rect.Y + n.Left.Rect.Height/2
 		endy := n.Right.Rect.Y + n.Right.Rect.Height/2
 
-		return grid.MarkLineBresenham(startx, starty, endx, endy, CORRIDOR)
-	} else {
-		return nil
+		grid.MarkLineBresenham(startx, starty, endx, endy, CORRIDOR)
 	}
 }

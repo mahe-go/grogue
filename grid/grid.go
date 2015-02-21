@@ -250,7 +250,7 @@ func (g *Grid) ApplyToConnected(mod GridCellModification, selectCondition GridCe
 }
 
 // Change the type of cells on a straight line from (startX, startY) to (endX, endY). Line is calculated with Bresenham algorithm.
-func (grid *Grid) MarkLineBresenham(startx int, starty int, endx int, endy int, cellType CellType) error {
+func (grid *Grid) MarkLineBresenham(startx int, starty int, endx int, endy int, cellType CellType) {
 
 	// Bresenham's line drawing algorithm
 	var cx int = startx
@@ -275,11 +275,11 @@ func (grid *Grid) MarkLineBresenham(startx int, starty int, endx int, endy int, 
 
 	for {
 		if cy >= grid.Height || cy < 0 || cx >= grid.Width || cx < 0 {
-			return nil
+			return
 		}
 		old, err := grid.Get(cx, cy)
 		if err != nil {
-			return err
+			return
 		} else {
 			if old.Type == WALL || old.Type == SOLID_ROCK {
 				err = grid.Set(cx, cy, *NewGridCellOfType(cellType))
@@ -287,10 +287,10 @@ func (grid *Grid) MarkLineBresenham(startx int, starty int, endx int, endy int, 
 		}
 
 		if err != nil {
-			return err
+			return
 		}
 		if (cx == endx) && (cy == endy) {
-			return nil
+			return
 		}
 		var e2 int = 2 * e
 		if e2 > (0 - dy) {

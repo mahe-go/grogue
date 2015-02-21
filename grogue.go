@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	g := grid.NewNaturalCavernGrid(80, 20, 45, 2)
+	g := gridFuncs[currentGridFunc](80, 20)
 
 	var err error
 	gui := gocui.NewGui()
@@ -23,6 +23,10 @@ func main() {
 		return
 	}
 	if err := gui.SetKeybinding("", rune('n'), gocui.ModNone, changeGrid()); err != nil {
+		fmt.Errorf("%s", err)
+		return
+	}
+	if err := gui.SetKeybinding("", rune('c'), gocui.ModNone, changeGridType()); err != nil {
 		fmt.Errorf("%s", err)
 		return
 	}
@@ -43,10 +47,28 @@ type KeyHandlerFunc func(gui *gocui.Gui, view *gocui.View) error
 
 func changeGrid() gocui.KeybindingHandler {
 	return func(gui *gocui.Gui, view *gocui.View) error {
-		gui.SetLayout(gridGui(grid.NewNaturalCavernGrid(80, 20, 45, 2)))
+		gui.SetLayout(gridGui(gridFuncs[currentGridFunc](80, 20)))
 		return nil
 	}
 }
+
+func changeGridType() gocui.KeybindingHandler {
+	return func(gui *gocui.Gui, view *gocui.View) error {
+		currentGridFunc = (currentGridFunc + 1) % 2
+		return nil
+	}
+}
+
+type GridFunc func(width int, height int) *grid.Grid
+
+func naturalGrid(width int, height int) *grid.Grid { return grid.NewNaturalCavernGrid(80, 20, 45, 2) }
+func rectangularGrid(width int, height int) *grid.Grid {
+	return grid.NewRectangularCavernGrid(width, height, 7, 7)
+}
+
+var gridFuncs [2]GridFunc = [2]GridFunc{naturalGrid, rectangularGrid}
+
+var currentGridFunc int = 0
 
 func gridGui(g *grid.Grid) LayoutFunc {
 	return func(gui *gocui.Gui) error {
