@@ -1,4 +1,4 @@
-package dungeon
+package grid
 
 import (
 	"math/rand"
@@ -31,7 +31,7 @@ func (n *node) isLeaf() bool {
 	return n.Left == nil && n.Right == nil
 }
 
-func BSPDungeon(width int, height int, minNodeWidth int, minNodeHeight int) (*Grid, error) {
+func NewRectangularCavernGrid(width int, height int, minNodeWidth int, minNodeHeight int) (*Grid, error) {
 	rand.Seed(time.Now().Unix())
 	root := split(newNode(nil, newRect(1, 1, width-1, height-1)), minNodeWidth, minNodeHeight)
 	grid := NewSolidGrid(width, height)
@@ -39,6 +39,8 @@ func BSPDungeon(width int, height int, minNodeWidth int, minNodeHeight int) (*Gr
 	if err == nil {
 		err = root.connectPartsWithCorridor(grid)
 	}
+	grid.buildCavernWalls()
+
 	return grid, err
 }
 
@@ -93,13 +95,7 @@ func (n *node) delveRoom(grid *Grid) error {
 		var err error
 		for x := roomX; x < roomWidth && err == nil; x++ {
 			for y := roomY; y < roomHeight && err == nil; y++ {
-				if y == roomY || y == roomHeight-1 {
-					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(WALL))
-				} else if x == roomX || x == roomWidth-1 {
-					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(WALL))
-				} else {
-					err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(ROOM))
-				}
+				err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(ROOM))
 			}
 		}
 		return err
