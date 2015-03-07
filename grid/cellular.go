@@ -34,14 +34,14 @@ func NewNaturalCavernGrid(width int, height int, emptySpacePercentage int, clean
 func (w *wrapper) runRoundOfCellularAutomata() {
 	for x := 0; x < w.grid.Width; x++ {
 		for y := 0; y < w.grid.Height; y++ {
-			count := w.neighbourCount(x, y, w.SolidCellType)
+			count := w.grid.CountNeighboursMatching(GridCellIsOfType(w.SolidCellType), x, y)
 			if count > 3 && count <= 5 {
 				cell, _ := w.grid.Get(x, y)
 				w.shadow.Set(x, y, cell)
 			} else if count <= 3 {
-				w.shadow.Set(x, y, NewGridCellOfTypeValue(w.HollowCellType))
+				w.shadow.ApplyToCellAtXY(GridCellTypeConverter(w.HollowCellType), x, y)
 			} else {
-				w.shadow.Set(x, y, NewGridCellOfTypeValue(w.SolidCellType))
+				w.shadow.ApplyToCellAtXY(GridCellTypeConverter(w.SolidCellType), x, y)
 			}
 		}
 	}
@@ -51,54 +51,23 @@ func (w *wrapper) runRoundOfCellularAutomata() {
 }
 
 func fillUnreachableCaverns(w *wrapper) {
+	isSuitableStartingPoint := func(x int, y int) bool {
+		return w.grid.TestCellAtXY(GridCellIsOfType(w.HollowCellType), x, y) &&
+			w.grid.CountNeighboursMatching(GridCellIsOfType(w.HollowCellType), x, y) == 8
+	}
 	var x, y int
 outer:
 	for y = 1; y < w.grid.Height; y++ {
 		for x = 1; x < w.grid.Width-1; x++ {
-			if cell, _ := w.grid.Get(x, y); cell.Type == w.HollowCellType && w.neighbourCount(x, y, w.HollowCellType) == 8 {
+			if isSuitableStartingPoint(x, y) {
 				break outer
 			}
 		}
 	}
 
-	markCellChecked := func(cell GridCell) GridCell {
-		cell.Checked = true
-		return cell
-	}
+	w.grid.ApplyToConnectedCells(GridCellChecker, GridCellIsChecked.Not().And(GridCellIsOfType(w.HollowCellType)), x, y)
 
-	markCellUnChecked := func(cell GridCell) GridCell {
-		cell.Checked = true
-		return cell
-	}
+	w.grid.ApplyToAllMatchingCells(GridCellTypeConverter(w.SolidCellType), GridCellIsChecked.Not().And(GridCellIsOfType(w.HollowCellType)))
 
-	isUnCheckedHollow := func(cell GridCell) bool {
-		return !cell.Checked && cell.Type == w.HollowCellType
-	}
-
-	w.grid.ApplyToConnected(markCellChecked, isUnCheckedHollow, x, y)
-
-	convertToSolid := func(c GridCell) GridCell { c.Type = w.SolidCellType; return c }
-
-	w.grid.ApplyToAllMatchingCells(convertToSolid, isUnCheckedHollow)
-
-	w.grid.ApplyToAllCells(markCellUnChecked)
-}
-
-func (w *wrapper) neighbourCount(x int, y int, celltype CellType) int {
-	count := 0
-	for i := -1; i <= 1; i++ {
-		for j := -1; j <= 1; j++ {
-			if i == 0 && j == 0 {
-				continue
-			} else {
-				cell, err := w.grid.Get(x+i, y+j)
-				if err == GRID_OVERFLOW {
-					count++
-				} else if cell.Type == celltype {
-					count++
-				}
-			}
-		}
-	}
-	return count
+	w.grid.ApplyToAllCells(GridCellUnChecker)
 }

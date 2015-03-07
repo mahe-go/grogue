@@ -34,7 +34,7 @@ func (n *node) isLeaf() bool {
 func NewRectangularCavernGrid(width int, height int, minNodeWidth int, minNodeHeight int) *Grid {
 	rand.Seed(time.Now().Unix())
 	root := split(newNode(nil, newRect(1, 1, width-1, height-1)), minNodeWidth, minNodeHeight)
-	grid := NewSolidGrid(width, height)
+	grid := NewSolidGridOfType(width, height, SOLID_ROCK)
 	root.delveRoom(grid)
 	root.connectPartsWithCorridor(grid)
 
@@ -107,7 +107,7 @@ func (n *node) delveRoom(grid *Grid) {
 		var err error
 		for x := roomX; x < roomWidth && err == nil; x++ {
 			for y := roomY; y < roomHeight && err == nil; y++ {
-				err = grid.Set(n.Rect.X+x, n.Rect.Y+y, *NewGridCellOfType(ROOM))
+				err = grid.ApplyToCellAtXY(GridCellTypeConverter(ROOM), n.Rect.X+x, n.Rect.Y+y)
 			}
 		}
 		return
@@ -128,6 +128,6 @@ func (n *node) connectPartsWithCorridor(grid *Grid) {
 		starty := n.Left.Rect.Y + n.Left.Rect.Height/2
 		endy := n.Right.Rect.Y + n.Right.Rect.Height/2
 
-		grid.MarkLineBresenham(startx, starty, endx, endy, CORRIDOR)
+		grid.ApplyOnLine(GridCellTypeConverter(CORRIDOR), GridCellIsOfType(SOLID_ROCK), startx, starty, endx, endy)
 	}
 }
