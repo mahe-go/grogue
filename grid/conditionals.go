@@ -38,7 +38,7 @@ func (self GridConditional) And(cond GridConditional) GridConditional {
 	}
 }
 
-func (self GridConditional) Not() GridConditional {
+func (self GridConditional)Not() GridConditional {
 	return func(g *Grid, x int, y int) bool {
 		return !self(g, x, y)
 	}

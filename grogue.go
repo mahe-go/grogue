@@ -18,27 +18,27 @@ func main() {
 	}
 	defer gui.Close()
 	gui.SetLayout(gridGui(g))
-	if err := gui.SetKeybinding("", rune('q'), gocui.ModNone, quit); err != nil {
+	if err := gui.SetKeybinding("", rune('q'), 0, quit); err != nil {
 		fmt.Errorf("%s", err)
 		return
 	}
-	if err := gui.SetKeybinding("", rune('n'), gocui.ModNone, changeGrid()); err != nil {
+	if err := gui.SetKeybinding("", rune('n'), 0, changeGrid()); err != nil {
 		fmt.Errorf("%s", err)
 		return
 	}
-	if err := gui.SetKeybinding("", rune('c'), gocui.ModNone, changeGridType()); err != nil {
+	if err := gui.SetKeybinding("", rune('c'), 0, changeGridType()); err != nil {
 		fmt.Errorf("%s", err)
 		return
 	}
 	err = gui.MainLoop()
-	if err != nil && err != gocui.Quit {
+	if err != nil && err != gocui.ErrorQuit {
 		fmt.Errorf("%s", err)
 		return
 	}
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.Quit
+	return gocui.ErrorQuit
 }
 
 type LayoutFunc func(gui *gocui.Gui) error
