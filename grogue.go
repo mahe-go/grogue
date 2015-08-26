@@ -31,14 +31,14 @@ func main() {
 		return
 	}
 	err = gui.MainLoop()
-	if err != nil && err != gocui.ErrorQuit {
+	if err != nil && err != gocui.Quit {
 		fmt.Errorf("%s", err)
 		return
 	}
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrorQuit
+	return gocui.Quit
 }
 
 type LayoutFunc func(gui *gocui.Gui) error
@@ -48,14 +48,14 @@ type KeyHandlerFunc func(gui *gocui.Gui, view *gocui.View) error
 func changeGrid() gocui.KeybindingHandler {
 	return func(gui *gocui.Gui, view *gocui.View) error {
 		gui.SetLayout(gridGui(gridFuncs[currentGridFunc](80, 20)))
-		return nil
+		return gui.Flush()
 	}
 }
 
 func changeGridType() gocui.KeybindingHandler {
 	return func(gui *gocui.Gui, view *gocui.View) error {
-		currentGridFunc = (currentGridFunc + 1) % 2
-		return nil
+		currentGridFunc = (currentGridFunc + 1) % len(gridFuncs)
+		return changeGrid()(gui, view)
 	}
 }
 
@@ -72,24 +72,36 @@ var currentGridFunc int = 0
 
 func gridGui(g *grid.Grid) LayoutFunc {
 	return func(gui *gocui.Gui) error {
-		maxX, _ := gui.Size()
-		if mapView, err := gui.SetView("Map", maxX-g.Width-2, 0, maxX-1, g.Height+1); err != nil {
+		if mapView, err := gui.SetView("Map", 0, 0, g.Width+1, g.Height+1); err != nil {
 			if err != gocui.ErrorUnkView {
 				return err
 			}
-			printGrid(mapView, g)
+			mapView.Clear()
+			err = printGrid(mapView, g)
+			if err != nil {
+				return err
+			}
 		}
 		return gui.SetCurrentView("Map")
 	}
 }
 
-func printGrid(w io.Writer, g *grid.Grid) {
+func printGrid(w io.Writer, g *grid.Grid) (err error) {
 	for y := 0; y < g.Height; y++ {
+		line := make([]rune, g.Width)
+		line[0] = '?'
 		for x := 0; x < g.Width; x++ {
-			b, _ := g.Get(x, y)
-			fmt.Fprint(w, b)
+			var cell grid.GridCell
+			cell, err = g.Get(x, y)
+			if err != nil {
+				return
+			}
+			line[x] = cell.Type.Rune
 		}
-		fmt.Fprint(w, "\n")
+		_, err = fmt.Fprintln(w, string(line))
+		if err != nil {
+			return
+		}
 	}
-
+	return
 }

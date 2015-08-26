@@ -23,7 +23,3 @@ func NewGridCellOfType(typ CellType) *GridCell {
 func NewGridCellOfTypeValue(typ CellType) GridCell {
 	return GridCell{typ, false}
 }
-
-func (g GridCell) String() string {
-	return string([]rune{g.Type.Rune})
-}
