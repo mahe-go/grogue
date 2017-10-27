@@ -5,50 +5,43 @@ import (
 	"github.com/jroimartin/gocui"
 	"github.com/mahe-go/grogue/grid"
 	"io"
+	"log"
 )
 
 func main() {
 	g := gridFuncs[currentGridFunc](80, 20)
 
-	var err error
 	gui := gocui.NewGui()
 	if err := gui.Init(); err != nil {
-		fmt.Errorf("Error initializing gui: %s", err)
-		return
+		log.Panicln(err)
 	}
 	defer gui.Close()
+
 	gui.SetLayout(gridGui(g))
 	if err := gui.SetKeybinding("", rune('q'), 0, quit); err != nil {
-		fmt.Errorf("%s", err)
-		return
+		log.Panicln(err)
 	}
 	if err := gui.SetKeybinding("", rune('n'), 0, changeGrid()); err != nil {
-		fmt.Errorf("%s", err)
-		return
+		log.Panicln(err)
 	}
 	if err := gui.SetKeybinding("", rune('c'), 0, changeGridType()); err != nil {
-		fmt.Errorf("%s", err)
-		return
+		log.Panicln(err)
 	}
-	err = gui.MainLoop()
-	if err != nil && err != gocui.Quit {
-		fmt.Errorf("%s", err)
-		return
+	if err := gui.MainLoop(); err != nil && err != gocui.ErrQuit {
+		log.Panicln(err)
 	}
 }
 
 func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.Quit
+	return gocui.ErrQuit
 }
-
-type LayoutFunc func(gui *gocui.Gui) error
 
 type KeyHandlerFunc func(gui *gocui.Gui, view *gocui.View) error
 
 func changeGrid() gocui.KeybindingHandler {
 	return func(gui *gocui.Gui, view *gocui.View) error {
 		gui.SetLayout(gridGui(gridFuncs[currentGridFunc](80, 20)))
-		return gui.Flush()
+		return nil
 	}
 }
 
@@ -70,10 +63,10 @@ var gridFuncs [2]GridFunc = [2]GridFunc{naturalGrid, rectangularGrid}
 
 var currentGridFunc int = 0
 
-func gridGui(g *grid.Grid) LayoutFunc {
+func gridGui(g *grid.Grid) gocui.Handler {
 	return func(gui *gocui.Gui) error {
 		if mapView, err := gui.SetView("Map", 0, 0, g.Width+1, g.Height+1); err != nil {
-			if err != gocui.ErrorUnkView {
+			if err != gocui.ErrUnknownView {
 				return err
 			}
 			mapView.Clear()
