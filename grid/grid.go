@@ -296,7 +296,7 @@ func (g *Grid) CountNeighboursMatching(condition CellPredicate, x int, y int) in
 	return count
 }
 
-func (g *Grid) String() string {
+func (g Grid) String() string {
 	var buffer string
 	for y := 0; y < g.Height; y++ {
 		line := make([]rune, g.Width)
@@ -312,4 +312,15 @@ func (g *Grid) String() string {
 		buffer += string(line) + "\n"
 	}
 	return buffer
+}
+
+func (g *Grid) AddStairCases() {
+	var x, y int
+	for x, y = rand.Intn(g.Width), rand.Intn(g.Height); g.TestCellAtXY(CellIsTraversable.Not(), x, y); x, y = rand.Intn(g.Width), rand.Intn(g.Height) {
+	}
+	g.ApplyToCellAtXY(GridCellTypeConverter(STAIRCASE_UP), x, y)
+
+	for x, y = rand.Intn(g.Width), rand.Intn(g.Height); g.TestCellAtXY(CellIsTraversable.Not(), x, y); x, y = rand.Intn(g.Width), rand.Intn(g.Height) {
+	}
+	g.ApplyToCellAtXY(GridCellTypeConverter(STAIRCASE_DOWN), x, y)
 }

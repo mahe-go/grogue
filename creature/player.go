@@ -46,3 +46,14 @@ func (p *Player) Move(g *grid.Grid, direction grid.Direction) error {
 	}
 	return err
 }
+
+func PlacePlayerToGridAtMatching(player *Player, g *grid.Grid, predicate grid.CellPredicate) {
+	for x := 0; x < g.Width; x++ {
+		for y := 0; y < g.Height; y++ {
+			if g.TestCellAtXY(predicate, x, y) {
+				player.SetLocation(x, y)
+				return
+			}
+		}
+	}
+}
