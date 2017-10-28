@@ -2,6 +2,7 @@ package creature
 
 import (
 	"errors"
+
 	"github.com/mahe-go/grogue/grid"
 )
 
@@ -18,7 +19,12 @@ func NewPlayer(name string, species *Species) *Player {
 	return &Player{0, 0, name, species}
 }
 
-func (p *Player) moveOne(g *grid.Grid, direction grid.Direction) error {
+func (p *Player) SetLocation(x int, y int) {
+	p.X = x
+	p.Y = y
+}
+
+func (p *Player) MoveOne(g *grid.Grid, direction grid.Direction) error {
 	tx := p.X + direction.Dx
 	ty := p.Y + direction.Dy
 
@@ -33,10 +39,10 @@ func (p *Player) moveOne(g *grid.Grid, direction grid.Direction) error {
 	}
 }
 
-func (p *Player) move(g *grid.Grid, direction grid.Direction) error {
+func (p *Player) Move(g *grid.Grid, direction grid.Direction) error {
 	var err error
 	for i := 0; i < p.Movement && err == nil; i++ {
-		err = p.moveOne(g, direction)
+		err = p.MoveOne(g, direction)
 	}
 	return err
 }

@@ -31,6 +31,7 @@ func (n *node) isLeaf() bool {
 	return n.Left == nil && n.Right == nil
 }
 
+// Constructor for cavern with rectangular rooms
 func NewRectangularCavernGrid(width int, height int, minNodeWidth int, minNodeHeight int) *Grid {
 	rand.Seed(time.Now().Unix())
 	root := split(newNode(nil, newRect(1, 1, width-1, height-1)), minNodeWidth, minNodeHeight)
@@ -111,11 +112,9 @@ func (n *node) delveRoom(grid *Grid) {
 			}
 		}
 		return
-	} else {
-		n.Left.delveRoom(grid)
-		n.Right.delveRoom(grid)
-		return
 	}
+	n.Left.delveRoom(grid)
+	n.Right.delveRoom(grid)
 }
 
 func (n *node) connectPartsWithCorridor(grid *Grid) {
