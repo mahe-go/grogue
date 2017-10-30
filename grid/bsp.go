@@ -41,6 +41,8 @@ func NewRectangularCavernGrid(width int, height int, minNodeWidth int, minNodeHe
 
 	grid.buildCavernWalls()
 
+	grid.AddStairCases()
+
 	return grid
 }
 

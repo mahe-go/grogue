@@ -28,6 +28,8 @@ func NewNaturalCavernGrid(width int, height int, emptySpacePercentage int, clean
 
 	wrapper.grid.buildCavernWalls()
 
+	wrapper.grid.AddStairCases()
+
 	return wrapper.grid
 }
 

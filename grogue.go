@@ -16,7 +16,7 @@ func main() {
 	}
 	defer gcui.Close()
 
-	currentGrid, player := naturalGrid(80, 20)
+	currentGrid, player := rectangularGrid(80, 20)
 
 	gui.Layout(currentGrid, player, gcui)
 
@@ -36,6 +36,12 @@ func main() {
 	if err := gcui.SetKeybinding("Map", rune('a'), 0, gui.PlayerMovementHandler(currentGrid, player, grid.West)); err != nil {
 		log.Panicln(err)
 	}
+	if err := gcui.SetKeybinding("Map", rune('<'), 0, gui.StaircaseUpHandler(currentGrid, player)); err != nil {
+		log.Panicln(err)
+	}
+	if err := gcui.SetKeybinding("Map", rune('>'), 0, gui.StaircaseDownHandler(currentGrid, player)); err != nil {
+		log.Panicln(err)
+	}
 
 	if err := gcui.MainLoop(); err != nil && err != gocui.ErrQuit {
 		log.Panicln(err)
@@ -46,19 +52,16 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func placePlayerToGrid(player *creature.Player, g *grid.Grid) {
-	x := g.Width / 2
-	y := g.Height / 2
-	for !g.TestCellAtXY(grid.CellIsTraversable, x, y) {
-		x++
-		y++
-	}
-	player.SetLocation(x, y)
+func rectangularGrid(width int, height int) (*grid.Grid, *creature.Player) {
+	g := grid.NewRectangularCavernGrid(width, height, 7, 7)
+	p := creature.NewPlayer("Mahe", creature.NewSpecies(1, '@'))
+	creature.PlacePlayerToGridAtMatching(p, g, grid.GridCellIsOfType(grid.STAIRCASE_UP))
+	return g, p
 }
 
 func naturalGrid(width int, height int) (*grid.Grid, *creature.Player) {
 	g := grid.NewNaturalCavernGrid(width, height, 45, 2)
 	p := creature.NewPlayer("Mahe", creature.NewSpecies(1, '@'))
-	placePlayerToGrid(p, g)
+	creature.PlacePlayerToGridAtMatching(p, g, grid.GridCellIsOfType(grid.STAIRCASE_UP))
 	return g, p
 }
